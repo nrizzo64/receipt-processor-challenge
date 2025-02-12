@@ -1,14 +1,6 @@
-const fieldTypes = {
-  retailer: "string",
-  purchaseDate: "string", // or 'date' for specific date format validation
-  purchaseTime: "string", // or 'time' for specific time format validation
-  total: "number",
-  items: "array",
-};
-
 const fieldParsers = {
   retailer: (val) => {
-    if (typeof val !== fieldTypes.retailer)
+    if (typeof val !== "string")
       throw new Error(`retailer value is not a string`);
     // remove non-matching characters
     const sanitized = val.replace(
@@ -25,33 +17,35 @@ const fieldParsers = {
   },
 
   purchaseDate: (val) => {
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(val)) throw new Error(`purchaseDate format is invalid. Expecting YYYY-MM-DD`);
-    
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(val))
+      throw new Error(`purchaseDate format is invalid. Expecting YYYY-MM-DD`);
+
     const date = new Date(`${val}`);
     if (isNaN(date)) throw new Error(`purchaseDate is not a valid date`);
     return date;
   },
 
   purchaseTime: (val) => {
-    if(/^([01]\d|2[0-3]):[0-5]\d$/.test(val)) return val;
-    throw new Error(`purchaseTime is invalid`)
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(val)) return val;
+    throw new Error(`purchaseTime is invalid`);
   },
 
   total: (val) => {
-    const total = Number(val)
-    if(isNaN(total)) throw new Error(`total is not a valid number`);
+    const total = Number(val);
+    if (isNaN(total)) throw new Error(`total is not a valid number`);
     // not handling refunds
-    if(total <= 0) throw new Error(`total should be greater than $0.00`)
+    if (total <= 0) throw new Error(`total should be greater than $0.00`);
     return val;
   },
 
   items: (val) => {
-    if(!Array.isArray(val)) throw new Error(`items value should be an array`)
-    if(val.length === 0) throw new Error(`items array should not be empty`)
-    val.forEach(({shortDescription, price}, index) => {
-        if(!shortDescription) throw new Error(`shortDescription missing from item ${index}`);
-        if(!price) throw new Error(`price missing from item ${index}`);
-    })
+    if (!Array.isArray(val)) throw new Error(`items value should be an array`);
+    if (val.length === 0) throw new Error(`items array should not be empty`);
+    val.forEach(({ shortDescription, price }, index) => {
+      if (!shortDescription)
+        throw new Error(`shortDescription missing from item ${index}`);
+      if (!price) throw new Error(`price missing from item ${index}`);
+    });
 
     return val;
   },
@@ -68,7 +62,13 @@ function jsonIsObject(req, res, next) {
 function bodyHasExpectedFields(req, res, next) {
   let message = "Missing required fields: ";
   // TODO
-  const requiredFields = Object.keys(fieldTypes);
+  const requiredFields = [
+    "retailer",
+    "purchaseDate",
+    "purchaseTime",
+    "total",
+    "items",
+  ];
   const fields = Object.keys(req.body);
 
   const missingFields = requiredFields.filter(
@@ -77,7 +77,7 @@ function bodyHasExpectedFields(req, res, next) {
 
   if (missingFields.length > 0) {
     message += missingFields.join(", ");
-    return res.status(400).json({ message: message });
+    return res.status(400).json({ error: message });
   }
 
   next();
@@ -87,7 +87,6 @@ function bodyHasValidFieldValues(req, res, next) {
   const errors = [];
   // remove quotations from values in json body and compare with
   let message = "Incorrect values for fields: ";
-  //   const expectedFieldTypes = fieldTypes;
   const fields = Object.entries(req.body);
   const parsedFields = fields.map(([key, value]) => {
     const parser = fieldParsers[key];
@@ -103,16 +102,16 @@ function bodyHasValidFieldValues(req, res, next) {
     const splitStack = e.stack.split("\n");
     console.error(`${splitStack[0]}\n${splitStack[1]}`);
   });
-  if(errors.length) {
-    return res.status(401).json({errors: errors.map(e => e.message)});
+  if (errors.length) {
+    return res.status(401).json({ errors: errors.map((e) => e.message) });
   }
 
   next();
 }
 
-const validatePayload = [
+const validateReceipt = [
   jsonIsObject,
   bodyHasExpectedFields,
   bodyHasValidFieldValues,
 ];
-export default validatePayload;
+export default validateReceipt;
