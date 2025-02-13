@@ -6,20 +6,7 @@ export function process(req, res, next) {
 }
 
 export function calculatePoints(req, res, next) {
-  const { id } = req.params;
-  const receipt = Store.getReceipt(id);
-  if (!receipt) {
-    const { originalUrl, method, body } = req;
-    return res.status(404).json({
-      error: {
-        title: "Resource Not Found",
-        detail: "The requested receipt ID does not exist in the database.",
-        path: originalUrl,
-        method: method,
-      },
-      requestBody: body
-    });
-  }
+  const { receipt } = res.locals;
   let points = 0;
 
   // One point for every alphanumeric character in the retailer name.
