@@ -53,15 +53,13 @@ function jsonIsObject(req, res, next) {
   // express.JSON() guarantees the presence of req.body for requests with Content-Type: application/json
   if (!req.body || typeof req.body !== "object") {
     const { originalUrl, method, body } = req;
-    return res
-      .status(400)
-      .json({
-        title: "Missing JSON payload",
-        detail: `JSON is missing from HTTP request body`,
-        path: originalUrl,
-        method: method,
-        requestBody: body,
-      });
+    return res.status(400).json({
+      title: "Missing JSON payload",
+      detail: `JSON is missing from HTTP request body`,
+      path: originalUrl,
+      method: method,
+      requestBody: body,
+    });
   }
 
   return next();
@@ -124,7 +122,7 @@ function bodyHasValidFieldValues(req, res, next) {
     { errors: [], requestBody: body }
   );
 
-  if (Object.keys(errors).length) {
+  if (errors.errors.length) {
     return res.status(400).json(errors);
   }
 
