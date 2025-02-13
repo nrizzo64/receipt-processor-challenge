@@ -72,7 +72,7 @@ function bodyHasExpectedFields(req, res, next) {
   );
 
   if (missingFields.length) {
-    const { originalUrl, method} = req;
+    const { originalUrl, method } = req;
     const missingFieldObjects = missingFields.map((mf) => ({
       title: "Missing required field",
       detail: `The '${mf}' field is required`,
@@ -87,23 +87,35 @@ function bodyHasExpectedFields(req, res, next) {
 }
 
 function bodyHasValidFieldValues(req, res, next) {
-  // remove quotations from values in json body and compare with
+  const { originalUrl, method, body } = req;
   const fields = Object.entries(req.body);
-  const errors = fields.reduce((acc, [key, value]) => {
-    const parser = fieldParsers[key];
-    try {
-      parser(value);
-      return acc;
-    } catch (error) {
-      return {
-        ...acc,
-        [key]: error.message,
-      };
-    }
-  }, {});
+  const errors = fields.reduce(
+    (acc, [key, value]) => {
+      const parser = fieldParsers[key];
+      try {
+        parser(value);
+        return acc;
+      } catch (error) {
+        return {
+          ...acc,
+          errors: [
+            ...acc.errors,
+            {
+              title: "Invalid field",
+              source: { pointer: `/${key}` },
+              detail: `${error.message}`,
+              path: originalUrl,
+              method: method,
+            },
+          ],
+        };
+      }
+    },
+    { errors: [], requestBody: body }
+  );
 
   if (Object.keys(errors).length) {
-    return res.status(401).json({ errors: errors });
+    return res.status(400).json(errors);
   }
 
   return next();
