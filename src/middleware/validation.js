@@ -50,8 +50,18 @@ const fieldParsers = {
 };
 
 function jsonIsObject(req, res, next) {
+  // express.JSON() guarantees the presence of req.body for requests with Content-Type: application/json
   if (!req.body || typeof req.body !== "object") {
-    return res.status(400).json({ message: "Request body is not an object" });
+    const { originalUrl, method, body } = req;
+    return res
+      .status(400)
+      .json({
+        title: "Missing JSON payload",
+        detail: `JSON is missing from HTTP request body`,
+        path: originalUrl,
+        method: method,
+        requestBody: body,
+      });
   }
 
   return next();
